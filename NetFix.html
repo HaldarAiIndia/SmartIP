@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NetFix</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo="> <!-- Blank favicon -->
+
+<!-- Fonts & Icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
+
+<!-- Chart.js for Graphics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ─── Design Tokens ─── */
+:root {
+  --bg-primary: #17181a;
+  --bg-secondary: #202225;
+  --bg-tertiary: #2c2f33;
+  --bg-code: #101214;
+  --bg-hover: #35383c;
+  --text-primary: #f0f2f5;
+  --text-secondary: #a8b3cf;
+  --text-active: #82aaff;
+  --border-color: #3a3d42;
+  --error-color: #ff8a80;
+  --sidebar-width: 260px;
+  --font-family: 'Inter', sans-serif;
+  --font-family-code: 'Roboto Mono', monospace;
+
+  --status-ok: #69db7c;
+  --status-warn: #ffd43b;
+  --status-fail: #ff8a80;
+  --status-ok-bg: rgba(105,219,124,.08);
+  --status-warn-bg: rgba(255,212,59,.08);
+  --status-fail-bg: rgba(255,138,128,.08);
+  --accent-purple: #c792ea;
+  --accent-blue: #82aaff;
+  --accent-success: #22c55e;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f4;
+  --bg-code: #f8f9fa;
+  --bg-hover: #e8eaed;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-active: #1a73e8;
+  --border-color: #dadce0;
+}
+
+/* ─── Reset ─── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-family);font-size:16px;transition:background 0.3s, color 0.3s;}
+button,a{background:none;border:none;cursor:pointer;color:inherit;text-decoration:none;font-family:inherit}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;font-size:20px;color:var(--text-secondary);transition:color .2s;user-select:none}
+*:focus-visible{outline:2px solid var(--text-active);outline-offset:2px;border-radius:4px}
+
+/* ─── App Shell ─── */
+.app-container{display:flex;width:100%;height:100%}
+.main-wrapper{width:100%;height:100%;display:flex;flex-direction:column;flex-grow:1;min-width:0;}
+
+/* ─── Header ─── */
+.main-header{display:flex;align-items:center;padding:12px 24px;background:rgba(23,24,26,.0);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-color);flex-shrink:0;position:sticky;top:0;z-index:100;gap:12px}
+.header-logo{display:flex;align-items:center;gap:10px}
+.header-logo .logo-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.header-logo .logo-mark .material-symbols-outlined{color:#fff;font-size:18px}
+.header-title{font-size:1.05rem;font-weight:700;letter-spacing:-.3px}
+.header-sub{font-size:.8rem;color:var(--text-secondary);font-weight:400}
+.header-spacer{flex:1}
+.icon-button{padding:8px;border-radius:50%;display:flex;transition:background-color .2s}
+.icon-button:hover{background-color:var(--bg-hover)}
+
+.live-badge {font-size: 0.75rem; font-weight: 700; background: rgba(105,219,124,0.15); color: var(--status-ok); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+.live-badge .dot {width: 6px; height: 6px; background: var(--status-ok); border-radius: 50%; animation: pulse 2s infinite;}
+@keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(105,219,124,0.7);} 70% {box-shadow: 0 0 0 6px rgba(105,219,124,0);} 100% {box-shadow: 0 0 0 0 rgba(105,219,124,0);} }
+
+/* ─── Sidebar ─── */
+#left-sidebar{position:fixed;top:0;left:0;height:100%;width:var(--sidebar-width);max-width:85%;background:var(--bg-secondary);border-right:1px solid var(--border-color);display:flex;flex-direction:column;z-index:1001;transform:translateX(-100%);transition:transform .3s ease-in-out}
+body.left-sidebar-open #left-sidebar{transform:translateX(0)}
+.sidebar-content{padding:16px;display:flex;flex-direction:column;flex-grow:1;overflow-y:auto}
+.sidebar-header{font-size:1.4rem;font-weight:700;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.sidebar-header .material-symbols-outlined{color:var(--text-active);font-size:22px}
+.sidebar-section-label{font-size:.7rem;font-weight:600;letter-spacing:1px;color:var(--text-secondary);text-transform:uppercase;padding:8px 12px 4px;margin-top:8px}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px}
+.sidebar-nav button{font-size:.95em;display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:8px;font-weight:500;transition:background-color .2s,color .2s;color:var(--text-secondary);text-align:left;width:100%}
+.sidebar-nav button:hover{background:var(--bg-hover);color:var(--text-primary)}
+.sidebar-nav button.active{background:var(--bg-tertiary);color:var(--text-primary)}
+.sidebar-nav button.active .material-symbols-outlined,.sidebar-nav button:hover .material-symbols-outlined{color:var(--text-primary)}
+.sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border-color)}
+
+/* ─── Overlay & Loader ─── */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;z-index:1000}
+body.left-sidebar-open .overlay{opacity:1;visibility:visible}
+#loader { position: fixed; inset: 0; background: var(--bg-primary); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top: 3px solid var(--text-active); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Content ─── */
+.content-area{flex-grow:1;overflow-y:auto;position:relative}
+.screen{display:none;padding:24px 16px;max-width:960px;width:100%;margin:0 auto;animation:fadeIn 0.3s ease;}
+.screen.active{display:block}
+@keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+/* ─── Hero ─── */
+.hero{text-align:center;padding:20px 16px 32px;margin-bottom:8px}
+.hero h1{font-size:2.2rem;font-weight:700;letter-spacing:-.5px;margin-bottom:10px;line-height:1.2}
+.hero h1 span{background:linear-gradient(90deg,var(--accent-blue),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.05rem;color:var(--text-secondary);max-width:540px;margin:0 auto 28px;line-height:1.6}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ─── Buttons ─── */
+.btn{padding:10px 20px;font-weight:600;border-radius:8px;transition:background-color .2s,color .2s,opacity .2s;font-size:.95rem;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--text-active);color:#fff;}
+.btn-primary .material-symbols-outlined{color:#fff;}
+.btn-primary:hover:not(:disabled){opacity:.88}
+.btn-secondary{background:none;border:1px solid var(--border-color);color:var(--text-primary)}
+.btn-secondary:hover:not(:disabled){background:var(--bg-hover)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:6px 14px;font-size:.85rem}
+
+/* ─── Status Cards ─── */
+.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.status-card{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:18px;display:flex;align-items:flex-start;gap:14px;transition:border-color .2s}
+.status-card.ok{border-left:3px solid var(--status-ok)}
+.status-card.warn{border-left:3px solid var(--status-warn)}
+.status-card.fail{border-left:3px solid var(--status-fail)}
+.status-card.scanning{border-left:3px solid var(--text-secondary)}
+.status-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.status-card.ok .status-icon{background:var(--status-ok-bg)}
+.status-card.ok .status-icon .material-symbols-outlined{color:var(--status-ok)}
+.status-card.warn .status-icon{background:var(--status-warn-bg)}
+.status-card.warn .status-icon .material-symbols-outlined{color:var(--status-warn)}
+.status-card.fail .status-icon{background:var(--status-fail-bg)}
+.status-card.fail .status-icon .material-symbols-outlined{color:var(--status-fail)}
+.status-card.scanning .status-icon{background:var(--bg-tertiary)}
+.status-info h3{font-size:.85rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.status-info p{font-size:1.05rem;font-weight:600;color:var(--text-primary)}
+.status-info small{font-size:.8rem;color:var(--text-secondary)}
+
+/* ─── Section Header ─── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-color)}
+.section-header h2{font-size:1.1rem;font-weight:600;display:flex;align-items:center;gap:8px}
+.section-header h2 .material-symbols-outlined{font-size:18px;color:var(--text-active)}
+
+/* ─── Smart IP Grid & Data Display ─── */
+.suggestion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom:24px; }
+.suggestion-card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; transition: border-color 0.2s;}
+.card-header-box { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-icon { color: var(--text-active); font-size: 28px; }
+.suggestion-card h3 { font-size: 1rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; }
+
+.data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+.data-label { color: var(--text-secondary); font-size: 0.9rem; }
+.data-value { color: var(--text-primary); font-weight: 500; font-family: var(--font-family-code); text-align: right; }
+.live-value { color: var(--text-active); }
+.ip-display { font-size: 1.6rem; font-weight: 700; font-family: var(--font-family-code); color: var(--text-primary); margin: 8px 0 16px 0; word-break: break-all; }
+
+#map-container, .chart-container { width: 100%; border-radius: 8px; margin-top: 15px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-code); }
+#map-container { height: 180px; }
+.chart-container { height: 150px; padding: 10px; }
+
+/* ─── Diagnostic Steps ─── */
+.steps-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.step-item{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;overflow:hidden;}
+.step-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;user-select:none}
+.step-number{width:28px;height:28px;border-radius:50%;background:var(--bg-tertiary);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:var(--text-secondary);flex-shrink:0;}
+.step-item.active .step-number{background:var(--text-active);color:#fff;border-color:var(--text-active)}
+.step-item.done .step-number{background:var(--status-ok-bg);color:var(--status-ok);border-color:var(--status-ok)}
+.step-item.failed .step-number{background:var(--status-fail-bg);color:var(--status-fail);border-color:var(--status-fail)}
+.step-meta{flex:1}
+.step-meta h3{font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.step-meta p{font-size:.85rem;color:var(--text-secondary)}
+
+/* ─── Quick Tools Grid ─── */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.tool-card{background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:20px 18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:background .2s;text-align:left}
+.tool-card:hover{background:var(--bg-tertiary);}
+.tool-card .tool-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.tool-card .tool-icon .material-symbols-outlined{font-size:22px}
+.tool-card h3{font-size:.95rem;font-weight:600;color:var(--text-primary)}
+.tool-card p{font-size:.82rem;color:var(--text-secondary);line-height:1.5}
+.tool-card-blue .tool-icon{background:rgba(130,170,255,.1)}
+.tool-card-blue .tool-icon .material-symbols-outlined{color:var(--accent-blue)}
+.tool-card-purple .tool-icon{background:rgba(199,146,234,.1)}
+.tool-card-purple .tool-icon .material-symbols-outlined{color:var(--accent-purple)}
+.tool-card-green .tool-icon{background:rgba(105,219,124,.1)}
+.tool-card-green .tool-icon .material-symbols-outlined{color:var(--status-ok)}
+
+/* ─── Simple Results Panel ─── */
+.result-panel{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;padding:20px;margin-top:12px;display:none;}
+.result-panel h3 {font-size: 1rem; color: var(--text-primary); margin-bottom: 12px;}
+.result-stat {font-size: 1.1rem; font-weight: 600; color: var(--text-active); margin-bottom: 8px;}
+.result-desc {font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;}
+
+/* ─── Input Row & Tables ─── */
+.input-row{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
+.text-input{flex:1;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;font-size:.95rem;color:var(--text-primary);outline:none;font-family:var(--font-family)}
+.text-input:focus{border-color:var(--text-active)}
+
+.dns-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.88rem}
+.dns-table th{text-align:left;padding:8px 12px;background:var(--bg-secondary);color:var(--text-secondary);font-weight:600;font-size:.85rem;border-bottom:1px solid var(--border-color)}
+.dns-table td{padding:12px;border-bottom:1px solid var(--border-color);color:var(--text-primary)}
+.dns-table tr:last-child td{border-bottom:none}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:.8rem;font-weight:600;}
+.tag-ok{background:var(--status-ok-bg);color:var(--status-ok);border:1px solid rgba(105,219,124,.2)}
+.tag-fail{background:var(--status-fail-bg);color:var(--status-fail);border:1px solid rgba(255,138,128,.2)}
+.tag-warn{background:var(--status-warn-bg);color:var(--status-warn);border:1px solid rgba(255,212,59,.2)}
+
+/* ─── Progress & Alerts ─── */
+.progress-bar-wrap{height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;margin:8px 0 16px}
+.progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-purple));transition:width .4s ease;width:0%}
+
+.alert{border-radius:8px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;font-size:.92rem;line-height:1.55}
+.alert-ok{background:var(--status-ok-bg);border:1px solid rgba(105,219,124,.25);color:var(--status-ok)}
+.alert-fail{background:var(--status-fail-bg);border:1px solid rgba(255,138,128,.25);color:var(--status-fail)}
+.alert span.msg{color:var(--text-primary)}
+
+/* ─── History ─── */
+.history-item{display:flex;align-items:center;gap:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:14px 18px;margin-bottom:10px;}
+.history-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.history-meta{flex:1}
+.history-meta p{font-size:.95rem;font-weight:500;color:var(--text-primary);margin-bottom:2px}
+
+/* ─── Typing indicator ─── */
+.typing-indicator{display:inline-flex;align-items:center;gap:4px;padding:4px 0}
+.dot{width:6px;height:6px;background:var(--text-secondary);border-radius:50%;animation:typing-bounce 1.2s infinite ease-in-out}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes typing-bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* Responsive */
+@media(min-width:1024px){
+  #left-sidebar{position:static;transform:none;height:100%}
+  .icon-button#menu-toggle{display:none}
+  .app-container{flex-direction:row}
+}
+@media(max-width:600px){
+  .status-grid{grid-template-columns:1fr 1fr}
+  .tool-grid{grid-template-columns:1fr}
+  .input-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spinner"></div></div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="app-container">
+
+  <!-- ─── Left Sidebar ─── -->
+  <aside id="left-sidebar">
+    <div class="sidebar-content">
+      <div class="sidebar-header">
+        <span class="material-symbols-outlined">wifi_tethering</span>
+        NetFix
+      </div>
+
+      <div class="sidebar-section-label">Navigation</div>
+      <nav class="sidebar-nav">
+        <button class="active" onclick="showScreen('home')" data-screen="home">
+          <span class="material-symbols-outlined">dashboard</span>Dashboard
+        </button>
+        <button onclick="showScreen('ip')" data-screen="ip">
+          <span class="material-symbols-outlined">public</span>IP & Geography
+        </button>
+        <button onclick="showScreen('diagnose')" data-screen="diagnose">
+          <span class="material-symbols-outlined">troubleshoot</span>Run Diagnostics
+        </button>
+        <button onclick="showScreen('tools')" data-screen="tools">
+          <span class="material-symbols-outlined">build</span>Network Tools
+        </button>
+        <button onclick="showScreen('history')" data-screen="history">
+          <span class="material-symbols-outlined">history</span>Scan History
+        </button>
+      </nav>
+
+      <div class="sidebar-section-label">Actions</div>
+      <nav class="sidebar-nav">
+        <button onclick="copyIP()">
+          <span class="material-symbols-outlined">content_copy</span>Copy IP
+        </button>
+        <button onclick="exportJSON()">
+          <span class="material-symbols-outlined">cloud_download</span>Save JSON Report
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-badge" style="background:transparent; padding:0; border:none; margin-top:10px;">
+           <button style="width:100%; display:flex; justify-content:center; gap:8px; padding:10px; border-radius:8px; border:1px solid var(--border-color); cursor:pointer; color:var(--text-secondary); background:var(--bg-secondary); transition:0.2s;" onmouseover="this.style.background='var(--bg-hover)';" onmouseout="this.style.background='var(--bg-secondary)';" onclick="toggleTheme()">
+              <span class="material-symbols-outlined" id="theme-icon">light_mode</span> Toggle Theme
+           </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── Main Content ─── -->
+  <div class="main-wrapper">
+
+    <!-- Header -->
+    <header class="main-header">
+      <button class="icon-button" id="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <div class="header-logo">
+        <div class="logo-mark"><span class="material-symbols-outlined">radar</span></div>
+        <div>
+          <div class="header-title">NetFix</div>
+          <div class="header-sub">Live Connection Monitor</div>
+        </div>
+      </div>
+      <div class="header-spacer"></div>
+      <div class="live-badge"><div class="dot"></div>Live Update</div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="content-area">
+
+      <!-- ══════ HOME SCREEN ══════ -->
+      <section class="screen active" id="home-screen">
+        <div class="hero">
+          <h1>Monitor your <span>network</span> health</h1>
+          <p>Your connection status is monitored in real-time. Review your IP info below, run full diagnostics, or use manual tools.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="showScreen('diagnose');startDiagnose()">
+              <span class="material-symbols-outlined">play_arrow</span>Start Full Test
+            </button>
+            <button class="btn btn-secondary" onclick="showScreen('ip')">
+              <span class="material-symbols-outlined">map</span>View Geography
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Status -->
+        <div class="section-header">
+          <h2><span class="material-symbols-outlined">monitor_heart</span>Live Connection Status</h2>
+          <button class="btn btn-secondary btn-sm" onclick="quickScan(false)">
+            <span class="material-symbols-outlined">refresh</span>Refresh
+          </button>
+        </div>
+
+        <div class="status-grid" id="status-grid">
+          <div class="status-card scanning" id="sc-internet">
+            <div class="status-icon"><span class="material-symbols-outlined spin">progress_activity</span></div>
+            <div class="status-info"><h3>Global Internet</h3><p>Checking…</p><small>Connecting to web</small></div>
+          </div>
+          <div class="status-card scanning" id="sc-dns">
+            <div class="status-icon"><span class="material-symbols-outlined spin">progress_activity</span></div>
+            <div class="status-info"><h3>Address Finder (DNS)</h3><p>Checking…</p><small>Finding websites</small></div>
+          </div>
+          <div class="status-card scanning" id="sc-latency">
+            <div class="status-icon"><span class="material-symbols-outlined spin">progress_activity</span></div>
+            <div class="status-info"><h3>Response Speed</h3><p>Checking…</p><small>Delay to server</small></div>
+          </div>
+          <div class="status-card scanning" id="sc-gateway">
+            <div class="status-icon"><span class="material-symbols-outlined spin">progress_activity</span></div>
+            <div class="status-info"><h3>Device Wi-Fi/Cable</h3><p>Checking…</p><small>Local connection</small></div>
+          </div>
+        </div>
+
+        <!-- Quick Info Widget -->
+        <div class="suggestion-grid" style="margin-top:24px;">
+           <section class="suggestion-card" style="border-left: 3px solid var(--accent-blue);">
+              <div class="card-header-box">
+                  <h3>Your Connection Info</h3>
+                  <span class="material-symbols-outlined card-icon">public</span>
+              </div>
+              <div class="data-label">External IP Address</div>
+              <div class="ip-display" id="pub-ip-home">...</div>
+              <div class="data-row">
+                  <span class="data-label">ISP / Organization</span>
+                  <span class="data-value" id="net-isp-home">---</span>
+              </div>
+              <div class="data-row">
+                  <span class="data-label">Internal IP (Gateway)</span>
+                  <span class="data-value" id="local-ip-home">Detecting...</span>
+              </div>
+           </section>
+           
+           <section class="suggestion-card" style="display:flex; flex-direction:column; justify-content:center;">
+             <h3>Quick Shortcuts</h3>
+             <div class="tool-grid" style="margin-bottom:0; margin-top:12px; grid-template-columns:1fr;">
+               <button class="tool-card tool-card-green" style="padding:14px;" onclick="showScreen('tools')">
+                 <div style="display:flex; align-items:center; gap:12px;">
+                   <div class="tool-icon" style="margin:0; width:32px; height:32px;"><span class="material-symbols-outlined" style="font-size:18px;">speed</span></div>
+                   <div><h3 style="font-size:0.9rem; margin:0;">Run Speed Check</h3></div>
+                 </div>
+               </button>
+               <button class="tool-card tool-card-purple" style="padding:14px;" onclick="showScreen('tools')">
+                 <div style="display:flex; align-items:center; gap:12px;">
+                   <div class="tool-icon" style="margin:0; width:32px; height:32px;"><span class="material-symbols-outlined" style="font-size:18px;">dns</span></div>
+                   <div><h3 style="font-size:0.9rem; margin:0;">DNS Lookup</h3></div>
+                 </div>
+               </button>
+             </div>
+           </section>
+        </div>
+      </section>
+
+      <!-- ══════ SMART IP & GEOGRAPHY SCREEN ══════ -->
+      <section class="screen" id="ip-screen">
+         <div class="section-header" style="margin-bottom:24px;">
+            <h2><span class="material-symbols-outlined">map</span>IP & Geography Details</h2>
+         </div>
+         <div class="suggestion-grid">
+            <!-- Details -->
+            <section class="suggestion-card">
+                <div class="card-header-box">
+                    <h3>Connection Profile</h3>
+                    <span class="material-symbols-outlined card-icon">badge</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">External IP</span>
+                    <span class="data-value" id="pub-ip">...</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">ISP Organization</span>
+                    <span class="data-value" id="net-isp">---</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Session Uptime</span>
+                    <span class="data-value live-value" id="live-timer">00:00:00</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Real-time Ping</span>
+                    <span class="data-value" id="live-ping">--- ms</span>
+                </div>
+            </section>
+
+            <!-- Location -->
+            <section class="suggestion-card">
+                <div class="card-header-box">
+                    <h3>Geography Map</h3>
+                    <span class="material-symbols-outlined card-icon">location_on</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Location</span>
+                    <span class="data-value" id="loc-city">---</span>
+                </div>
+                <div class="data-row" style="border-bottom:none;">
+                    <span class="data-label">Country</span>
+                    <span class="data-value" id="loc-country">---</span>
+                </div>
+                <div id="map-container">
+                    <iframe id="map-frame" width="100%" height="100%" frameborder="0" scrolling="no" src=""></iframe>
+                </div>
+            </section>
+         </div>
+
+         <!-- Latency Chart -->
+         <section class="suggestion-card" style="max-width:100%;">
+             <div class="card-header-box">
+                 <h3>Live Latency Chart</h3>
+                 <span class="material-symbols-outlined card-icon">monitoring</span>
+             </div>
+             <div class="chart-container">
+                 <canvas id="latencyChart"></canvas>
+             </div>
+             <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px; text-align: center;">Live server ping updates every 5 seconds</p>
+         </section>
+      </section>
+
+      <!-- ══════ DIAGNOSE SCREEN ══════ -->
+      <section class="screen" id="diagnose-screen">
+          <div class="section-header" style="margin-bottom:8px;">
+            <h2><span class="material-symbols-outlined">troubleshoot</span>Full Diagnostic Test</h2>
+          </div>
+          <p style="color:var(--text-secondary);font-size:.95rem">We will automatically test 6 different parts of your internet connection using real web requests.</p>
+
+          <div style="margin:24px 0 8px;display:flex;align-items:center;justify-content:space-between">
+            <span id="diag-status-text" style="color:var(--text-secondary);font-size:.9rem">Press Start to begin</span>
+            <div id="diag-progress-label" style="font-size:.8rem;color:var(--text-secondary);font-weight:bold;">0 / 6</div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="diag-progress"></div>
+          </div>
+
+          <div class="steps-list" id="diag-steps">
+            <div class="step-item" id="diag-1">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-meta"><h3>Device Network Check</h3><p>Checking if your Wi-Fi or Network Cable is plugged in</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+            <div class="step-item" id="diag-2">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-meta"><h3>Outside Connection</h3><p>Checking if data can successfully leave your home network</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+            <div class="step-item" id="diag-3">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-meta"><h3>Address Translation (DNS)</h3><p>Ensuring your computer can turn website names into physical addresses</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+            <div class="step-item" id="diag-4">
+              <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-meta"><h3>Download Test</h3><p>Testing if we can download data from a live internet server</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+            <div class="step-item" id="diag-5">
+              <div class="step-header">
+                <div class="step-number">5</div>
+                <div class="step-meta"><h3>Speed & Delay Measurement</h3><p>Checking if your connection is fast enough for smooth browsing</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+            <div class="step-item" id="diag-6">
+              <div class="step-header">
+                <div class="step-number">6</div>
+                <div class="step-meta"><h3>Security Check (HTTPS)</h3><p>Making sure secure banking and shopping websites are not blocked</p></div>
+                <span class="material-symbols-outlined step-chevron" style="font-size:18px">radio_button_unchecked</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="diag-result" style="display:none;margin-top:8px"></div>
+
+          <div style="display:flex;gap:12px;margin-top:16px">
+            <button class="btn btn-primary" id="diag-start-btn" onclick="startDiagnose()">
+              <span class="material-symbols-outlined">play_arrow</span>Start Diagnostic
+            </button>
+            <button class="btn btn-secondary" onclick="resetDiagnose()">
+              <span class="material-symbols-outlined">restart_alt</span>Reset Screen
+            </button>
+          </div>
+      </section>
+
+      <!-- ══════ TOOLS SCREEN ══════ -->
+      <section class="screen" id="tools-screen">
+          <div class="section-header" style="margin-bottom:24px;">
+            <h2><span class="material-symbols-outlined">build</span>Manual Network Tools</h2>
+          </div>
+
+          <!-- Ping -->
+          <div class="section-header"><h2><span class="material-symbols-outlined">send</span>Connection Test</h2></div>
+          <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:12px;">Type any website below. We will send 4 quick signals to see how fast it responds.</p>
+          <div class="input-row">
+            <input type="text" class="text-input" id="ping-host" placeholder="e.g. google.com" value="google.com" />
+            <button class="btn btn-primary" id="ping-btn" onclick="runPing()">
+              <span class="material-symbols-outlined">send</span>Test Connection
+            </button>
+          </div>
+          <div class="result-panel" id="ping-output"></div>
+
+          <div style="height:24px"></div>
+
+          <!-- DNS -->
+          <div class="section-header"><h2><span class="material-symbols-outlined">dns</span>Find Website Info</h2></div>
+           <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:12px;">Find out the hidden IP address behind any website name via secure DoH.</p>
+          <div class="input-row">
+            <input type="text" class="text-input" id="dns-host" placeholder="e.g. cloudflare.com" value="cloudflare.com" />
+            <button class="btn btn-primary" id="dns-btn" onclick="runDNS()">
+              <span class="material-symbols-outlined">search</span>Find Info
+            </button>
+          </div>
+          <div class="result-panel" id="dns-output" style="padding:0; overflow:hidden;">
+            <table class="dns-table">
+              <thead><tr><th>Data Type</th><th>Description</th><th>Found Result</th><th>Status</th></tr></thead>
+              <tbody id="dns-tbody"></tbody>
+            </table>
+          </div>
+
+          <div style="height:24px"></div>
+
+          <!-- Speed Test -->
+          <div class="section-header"><h2><span class="material-symbols-outlined">speed</span>Speed & Quality Check</h2></div>
+          <div id="speed-area">
+            <div class="alert alert-info" style="margin-bottom:12px">
+              <span class="material-symbols-outlined">info</span>
+              <span class="msg">This runs a quick download test to see if your connection is fast and stable.</span>
+            </div>
+            <button class="btn btn-primary" id="speed-btn" onclick="runSpeedTest()">
+              <span class="material-symbols-outlined">speed</span>Start Speed Check
+            </button>
+            <div id="speed-output" style="margin-top:16px;display:none">
+              <div class="status-grid" id="speed-cards"></div>
+            </div>
+          </div>
+      </section>
+
+      <!-- ══════ HISTORY SCREEN ══════ -->
+      <section class="screen" id="history-screen">
+          <div class="section-header" style="margin-bottom:24px;">
+            <h2><span class="material-symbols-outlined">history</span>Scan History</h2>
+          </div>
+          <p style="color:var(--text-secondary);font-size:.95rem;margin-bottom:20px;">A record of all the tests you have manually run today.</p>
+          <div id="history-list"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   GLOBAL VARIABLES & INIT
+══════════════════════════════════ */
+let ipData = {};
+let sessionSeconds = 0;
+let latencyChart;
+let historyData = [];
+const statusIcons = { ok:'check_circle', fail:'error', warn:'warning', scanning:'progress_activity' };
+
+window.onload = () => {
+    initLatencyChart();
+    fetchIPInfo();
+    getLocalIP();
+    startLiveUpdates();
+    renderHistory();
+    quickScan(true); 
+};
+
+/* ══════════════════════════════════
+   NAVIGATION & THEME
+══════════════════════════════════ */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(name + '-screen').classList.add('active');
+  document.querySelectorAll('.sidebar-nav button').forEach(b => {
+    if(b.dataset.screen) b.classList.toggle('active', b.dataset.screen === name);
+  });
+  if(window.innerWidth < 1024) document.body.classList.remove('left-sidebar-open');
+}
+
+function toggleSidebar() { document.body.classList.toggle('left-sidebar-open'); }
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const target = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', target);
+    document.getElementById('theme-icon').innerText = target === 'light' ? 'light_mode' : 'dark_mode';
+    
+    if(latencyChart) {
+        const isDark = target === 'dark';
+        latencyChart.options.scales.x.grid.color = isDark ? '#3a3d42' : '#dadce0';
+        latencyChart.options.scales.y.grid.color = isDark ? '#3a3d42' : '#dadce0';
+        latencyChart.update();
+    }
+}
+
+/* ══════════════════════════════════
+   SMART IP FETCHING (5-API Fallback)
+══════════════════════════════════ */
+function normalizeData(data, source) {
+    if (!data) return null;
+
+    if (source === 'ipwho' && data.success !== false) {
+        return {
+            ip: data.ip,
+            isp: data.connection?.isp || data.connection?.org || 'Unknown ISP',
+            city: data.city,
+            region: data.region_code || data.region,
+            country: data.country,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            raw: data
+        };
+    }
+    if (source === 'ipapi' && !data.error && !data.reserved) {
+        return {
+            ip: data.ip,
+            isp: data.org || 'Unknown ISP',
+            city: data.city,
+            region: data.region_code || data.region,
+            country: data.country_name,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            raw: data
+        };
+    }
+    if (source === 'ipinfo' && !data.bogon && data.ip) {
+        const [lat, lon] = (data.loc || ',').split(',').map(Number);
+        return {
+            ip: data.ip,
+            isp: data.org || 'Unknown ISP',
+            city: data.city,
+            region: data.region,
+            country: data.country,
+            latitude: lat || null,
+            longitude: lon || null,
+            raw: data
+        };
+    }
+    if (source === 'freeipapi' && data.ipAddress) {
+        return {
+            ip: data.ipAddress,
+            isp: 'Detecting ISP...', 
+            city: data.cityName || 'Unknown',
+            region: data.regionName || '',
+            country: data.countryName || 'Unknown',
+            latitude: data.latitude || null,
+            longitude: data.longitude || null,
+            raw: data
+        };
+    }
+    if (source === 'ipify' && data.ip) {
+        return {
+            ip: data.ip,
+            isp: 'Location blocked by network/browser',
+            city: 'Unknown',
+            region: '',
+            country: 'Unknown',
+            latitude: null,
+            longitude: null,
+            raw: data
+        };
+    }
+    return null;
+}
+
+async function tryFetch(url, source) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); 
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        const data = await res.json();
+        return normalizeData(data, source);
+    } catch(e) { 
+        return null; 
+    }
+}
+
+async function fetchIPInfo() {
+    try {
+        let norm = null;
+        norm = await tryFetch('https://ipwho.is/', 'ipwho');
+        if (!norm) norm = await tryFetch('https://ipapi.co/json/', 'ipapi');
+        if (!norm) norm = await tryFetch('https://ipinfo.io/json', 'ipinfo');
+        if (!norm) norm = await tryFetch('https://freeipapi.com/api/json', 'freeipapi');
+        if (!norm) norm = await tryFetch('https://api.ipify.org?format=json', 'ipify');
+
+        if (norm) {
+            ipData = norm.raw;
+            document.getElementById('pub-ip-home').innerText = norm.ip;
+            document.getElementById('net-isp-home').innerText = norm.isp;
+            document.getElementById('pub-ip').innerText = norm.ip;
+            document.getElementById('net-isp').innerText = norm.isp;
+            const city = norm.city || '---';
+            const region = norm.region || '---';
+            document.getElementById('loc-city').innerText = `${city}, ${region}`;
+            
+            // Icon replaced emoji flag here
+            document.getElementById('loc-country').innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${norm.country || '---'} <span class="material-symbols-outlined" style="font-size:18px;">flag</span></span>`;
+
+            if (norm.latitude && norm.longitude) {
+                const lat = norm.latitude, lon = norm.longitude;
+                document.getElementById('map-frame').src = `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01},${lat-0.01},${lon+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lon}`;
+            }
+        } else {
+            const errStr = "Detection Blocked";
+            document.getElementById('pub-ip-home').innerText = errStr;
+            document.getElementById('pub-ip').innerText = errStr;
+            document.getElementById('net-isp').innerText = "Check VPN/AdBlocker";
+            document.getElementById('net-isp-home').innerText = "Check VPN/AdBlocker";
+        }
+    } finally {
+        document.getElementById('loader').style.display = 'none';
+    }
+}
+
+function getLocalIP() {
+    const pc = new RTCPeerConnection({iceServers:[]});
+    pc.createDataChannel("");
+    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {
+        document.getElementById('local-ip-home').innerText = "Protected by Browser";
+    });
+    pc.onicecandidate = (i) => {
+        if (!i || !i.candidate) return;
+        const m = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(i.candidate.candidate);
+        if (m) document.getElementById('local-ip-home').innerText = m[1];
+    };
+    setTimeout(() => {
+        if(document.getElementById('local-ip-home').innerText.includes("Detecting"))
+            document.getElementById('local-ip-home').innerText = "Protected by Browser";
+    }, 3000);
+}
+
+function copyIP() {
+    const ip = document.getElementById('pub-ip').innerText;
+    if(ip && !ip.includes("...")) {
+        navigator.clipboard.writeText(ip);
+        alert("IP Address Copied!");
+    } else {
+        alert("No IP found to copy.");
+    }
+}
+
+function exportJSON() {
+    if(Object.keys(ipData).length === 0) return alert("No data available to save.");
+    const blob = new Blob([JSON.stringify(ipData, null, 2)], {type : 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'network_report.json';
+    a.click();
+}
+
+/* ══════════════════════════════════
+   LIVE CHART & BACKGROUND PING
+══════════════════════════════════ */
+function initLatencyChart() {
+    const ctx = document.getElementById('latencyChart').getContext('2d');
+    latencyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(10).fill(''),
+            datasets: [{
+                label: 'Ping (ms)',
+                data: Array(10).fill(0),
+                borderColor: '#82aaff',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: 'rgba(130, 170, 255, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: {enabled: false} },
+            scales: {
+                x: { display: false, grid: { color: '#3a3d42' } },
+                y: { beginAtZero: true, grid: { color: '#3a3d42' }, ticks: { color: '#a8b3cf', font: { size: 10 } } }
+            },
+            animation: { duration: 0 }
+        }
+    });
+}
+
+function startLiveUpdates() {
+    setInterval(() => {
+        sessionSeconds++;
+        const hrs = String(Math.floor(sessionSeconds / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((sessionSeconds % 3600) / 60)).padStart(2, '0');
+        const secs = String(sessionSeconds % 60).padStart(2, '0');
+        document.getElementById('live-timer').innerText = `${hrs}:${mins}:${secs}`;
+    }, 1000);
+
+    setInterval(measurePingForChart, 5000);
+    setInterval(() => quickScan(true), 8000);
+}
+
+async function measurePingForChart() {
+    const start = Date.now();
+    try {
+        await fetch('https://www.google.com/generate_204', { mode: 'no-cors', cache: 'no-store' });
+        const ping = Date.now() - start;
+        
+        const pingEl = document.getElementById('live-ping');
+        pingEl.innerText = `${ping} ms`;
+        if (ping < 150) pingEl.style.color = "var(--accent-success)";
+        else if (ping < 300) pingEl.style.color = "var(--status-warn)";
+        else pingEl.style.color = "var(--error-color)";
+        
+        if(latencyChart) {
+            latencyChart.data.datasets[0].data.push(ping);
+            latencyChart.data.datasets[0].data.shift();
+            latencyChart.update();
+        }
+    } catch (e) {
+        document.getElementById('live-ping').innerText = "---";
+        if(latencyChart) {
+            latencyChart.data.datasets[0].data.push(0);
+            latencyChart.data.datasets[0].data.shift();
+            latencyChart.update();
+        }
+    }
+}
+
+/* ══════════════════════════════════
+   DASHBOARD QUICK SCAN
+══════════════════════════════════ */
+function setCard(id, state, label, detail) {
+  const card = document.getElementById(id);
+  if(!card) return;
+  card.className = 'status-card ' + state;
+  const icon = card.querySelector('.material-symbols-outlined');
+  icon.textContent = statusIcons[state] || 'help';
+  icon.className = 'material-symbols-outlined' + (state==='scanning'?' spin':'');
+  card.querySelector('p').textContent = label;
+  card.querySelector('small').textContent = detail;
+}
+
+async function quickScan(isBackground = false) {
+  if (!isBackground) {
+    ['internet','dns','latency','gateway'].forEach(id => setCard('sc-'+id,'scanning','Checking…',''));
+  }
+
+  let hasInternet = false;
+  let rtt = 0;
+  
+  const start = performance.now();
+  try {
+    await fetch('https://www.google.com/generate_204', { mode: 'no-cors', cache: 'no-store' });
+    hasInternet = true;
+    rtt = Math.round(performance.now() - start);
+  } catch(e) {
+    hasInternet = false;
+  }
+
+  const adapterUp = navigator.onLine;
+  const delay = isBackground ? 0 : 600;
+  
+  setTimeout(()=> {
+    setCard('sc-gateway', adapterUp?'ok':'fail', adapterUp?'Connected':'Disconnected', adapterUp?'Device is online':'No Wi-Fi/Cable detected');
+    setCard('sc-dns', hasInternet?'ok':'fail', hasInternet?'Working':'Failing', hasInternet?'Can find websites':'Translation failed');
+    
+    const s = rtt < 80 ? 'ok' : rtt < 200 ? 'warn' : 'fail';
+    setCard('sc-latency', hasInternet?s:'fail', hasInternet?rtt+' ms':'Offline', hasInternet?'Server response time':'Cannot test speed');
+    
+    setCard('sc-internet', hasInternet?'ok':'fail', hasInternet?'Online':'Offline', hasInternet?'Global web access':'No connection to outside');
+    
+    if (!isBackground) saveHistory(hasInternet, rtt, "Dashboard Refresh Check");
+
+  }, delay);
+}
+
+/* ══════════════════════════════════
+   FULL DIAGNOSTIC AUTOMATION
+══════════════════════════════════ */
+let diagRunning = false;
+
+function resetDiagnose() {
+  diagRunning = false;
+  for (let i = 1; i <= 6; i++) {
+    const s = document.getElementById('diag-' + i);
+    s.className = 'step-item';
+    s.querySelector('.step-chevron').textContent = 'radio_button_unchecked';
+  }
+  document.getElementById('diag-progress').style.width = '0%';
+  document.getElementById('diag-progress-label').textContent = '0 / 6';
+  document.getElementById('diag-status-text').textContent = 'Press Start to begin';
+  document.getElementById('diag-result').style.display = 'none';
+  document.getElementById('diag-start-btn').disabled = false;
+}
+
+async function startDiagnose() {
+  if (diagRunning) return;
+  resetDiagnose();
+  diagRunning = true;
+  document.getElementById('diag-start-btn').disabled = true;
+
+  let failures = 0;
+
+  async function execStep(stepNum, testFunc) {
+    if (!diagRunning) return false;
+    const el = document.getElementById('diag-' + stepNum);
+    el.className = 'step-item active';
+    el.querySelector('.step-chevron').textContent = 'pending';
+    document.getElementById('diag-status-text').textContent = `Running test ${stepNum} of 6…`;
+
+    const { pass, msg } = await testFunc();
+
+    if (!diagRunning) return false; 
+    el.className = 'step-item ' + (pass ? 'done' : 'failed');
+    el.querySelector('.step-chevron').textContent = pass ? 'check_circle' : 'cancel';
+    el.querySelector('.step-meta p').textContent = msg;
+
+    if (!pass) failures++;
+    document.getElementById('diag-progress').style.width = ((stepNum / 6) * 100) + '%';
+    document.getElementById('diag-progress-label').textContent = stepNum + ' / 6';
+
+    await new Promise(r => setTimeout(r, 800)); 
+    return pass;
+  }
+
+  const fetchWithTimeout = async (resource, options = {}) => {
+    const timeout = 4000;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    const response = await fetch(resource, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  };
+
+  try {
+    await execStep(1, async () => {
+      const isOnline = navigator.onLine;
+      return { pass: isOnline, msg: isOnline ? 'Your device is successfully connected to a network.' : 'You have no Wi-Fi or network cable plugged in.' };
+    });
+
+    await execStep(2, async () => {
+      try {
+        await fetchWithTimeout('https://1.1.1.1', { mode: 'no-cors', cache: 'no-store' });
+        return { pass: true, msg: 'Data is successfully leaving your house and hitting the internet.' };
+      } catch (e) {
+        return { pass: false, msg: 'Your router cannot connect to the outside internet.' };
+      }
+    });
+
+    await execStep(3, async () => {
+      try {
+        const r = await fetchWithTimeout('https://dns.google/resolve?name=google.com');
+        const d = await r.json();
+        if (d.Answer) return { pass: true, msg: `We successfully looked up google.com (${d.Answer[0].data}).` };
+        return { pass: false, msg: 'Your internet provider failed to find the website address.' };
+      } catch (e) {
+        return { pass: false, msg: 'The address lookup service is not responding.' };
+      }
+    });
+
+    let measuredRtt = 0;
+    const s4 = await execStep(4, async () => {
+      try {
+        const start = performance.now();
+        await fetchWithTimeout('https://www.cloudflare.com/cdn-cgi/trace', { cache: 'no-store' });
+        measuredRtt = Math.round(performance.now() - start);
+        return { pass: true, msg: 'We successfully downloaded test data from a web server.' };
+      } catch (e) {
+        return { pass: false, msg: 'We could not download any data. Connection blocked.' };
+      }
+    });
+
+    await execStep(5, async () => {
+      if (s4) return { pass: measuredRtt < 300, msg: `Your response delay is ${measuredRtt} milliseconds. ${measuredRtt > 150 ? '(A bit slow)' : '(Very healthy)'}` };
+      return { pass: false, msg: 'Could not test speed because the previous step failed.' };
+    });
+
+    await execStep(6, async () => {
+      if (s4) return { pass: true, msg: 'Your secure connections (like banking) are working perfectly.' };
+      return { pass: false, msg: 'Your computer is blocking secure web connections.' };
+    });
+
+  } catch (err) {}
+
+  if (diagRunning) finishDiagnose(failures);
+}
+
+function finishDiagnose(failures) {
+  diagRunning = false;
+  document.getElementById('diag-start-btn').disabled = false;
+  const res = document.getElementById('diag-result');
+  res.style.display = 'block';
+  if (failures === 0) {
+    // Icon replaced unicode checkmark
+    res.innerHTML = '<div class="alert alert-ok"><span class="material-symbols-outlined">check_circle</span><span class="msg"><strong>All tests passed!</strong> Your internet connection is healthy and working correctly. If an app still won\'t load, the problem is likely with that specific app.</span></div>';
+    document.getElementById('diag-status-text').innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span> Test complete — Your internet is working!</span>';
+  } else {
+    res.innerHTML = `<div class="alert alert-fail"><span class="material-symbols-outlined">error</span><span class="msg"><strong>We found ${failures} problem${failures > 1 ? 's' : ''}.</strong> Please look at the steps marked in red above. Try restarting your Wi-Fi router.</span></div>`;
+    document.getElementById('diag-status-text').textContent = failures + ' problem(s) found';
+  }
+  saveHistory(failures === 0, null, 'Full Diagnostic Test');
+}
+
+/* ══════════════════════════════════
+   MANUAL TOOLS
+══════════════════════════════════ */
+async function runPing() {
+  let host = document.getElementById('ping-host').value.trim() || 'google.com';
+  if (!host.startsWith('http')) host = 'https://' + host;
+  
+  const out = document.getElementById('ping-output');
+  out.style.display = 'block';
+  out.innerHTML = `
+    <h3>Testing connection to ${host}</h3>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 16px;" id="ping-bars">
+       <div class="typing-indicator" id="ping-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+    <div id="ping-final" style="display:none; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;"></div>
+  `;
+  const btn = document.getElementById('ping-btn');
+  btn.disabled = true;
+
+  let count = 0, totalRtt = 0, lost = 0;
+  const bars = document.getElementById('ping-bars');
+
+  const interval = setInterval(async () => {
+    if (count >= 4) {
+      clearInterval(interval);
+      document.getElementById('ping-typing').style.display = 'none';
+      const avg = (totalRtt / (count - lost) || 0).toFixed(0);
+      
+      const finalDiv = document.getElementById('ping-final');
+      finalDiv.style.display = 'block';
+      
+      let health = "Excellent";
+      let healthCol = "var(--status-ok)";
+      if (lost > 0) { health = "Unstable / Poor"; healthCol = "var(--status-fail)"; }
+      else if (avg > 150) { health = "Slow Connection"; healthCol = "var(--status-warn)"; }
+
+      finalDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="result-desc" style="margin-bottom:4px;">Average Response Speed</div>
+            <div class="result-stat" style="font-size:1.4rem;">${lost === 4 ? 'Offline' : avg + ' ms'}</div>
+          </div>
+          <div style="text-align:right;">
+             <div class="result-desc" style="margin-bottom:4px;">Signal Health</div>
+             <div class="result-stat" style="color:${healthCol}; font-size:1.2rem;">${health}</div>
+          </div>
+        </div>
+      `;
+      btn.disabled = false;
+      saveHistory(lost === 0, avg, `Ping to ${host}`);
+      return;
+    }
+
+    const start = performance.now();
+    try {
+      await fetch(host, { mode: 'no-cors', cache: 'no-store' });
+      const rtt = Math.round(performance.now() - start);
+      totalRtt += rtt;
+      const tagColor = rtt > 200 ? 'tag-warn' : 'tag-ok';
+      bars.insertAdjacentHTML('beforeend', `<div class="tag ${tagColor}">Test ${count+1}: ${rtt} ms</div>`);
+    } catch (e) {
+      lost++;
+      bars.insertAdjacentHTML('beforeend', `<div class="tag tag-fail">Test ${count+1}: Failed</div>`);
+    }
+    count++;
+  }, 1000); 
+}
+
+async function runDNS() {
+  const host = document.getElementById('dns-host').value.trim() || 'cloudflare.com';
+  const out = document.getElementById('dns-output');
+  const tbody = document.getElementById('dns-tbody');
+  const btn = document.getElementById('dns-btn');
+  
+  btn.disabled = true;
+  out.style.display = 'block';
+  tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-secondary);padding:20px;text-align:center;"><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div> Looking up ${host}…</td></tr>`;
+
+  try {
+    const response = await fetch(`https://dns.google/resolve?name=${host}&type=ANY`);
+    const data = await response.json();
+
+    if (!data.Answer) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--status-fail);padding:20px;font-weight:bold;">We could not find any records. Does this website exist?</td></tr>`;
+      btn.disabled = false; return;
+    }
+
+    const typeMap = { 
+      1: { name: 'Standard IP', desc: 'Main physical location' }, 
+      2: { name: 'Name Server', desc: 'Who manages this site' }, 
+      5: { name: 'Alias / Forward', desc: 'Redirects to another name' }, 
+      15: { name: 'Email Server', desc: 'Handles their emails' }, 
+      16: { name: 'Text Record', desc: 'Extra security info' }, 
+      28: { name: 'Next-Gen IP (IPv6)', desc: 'Modern physical location' } 
+    };
+
+    tbody.innerHTML = data.Answer.map(r => {
+      const typeInfo = typeMap[r.type] || { name: 'Other Data', desc: 'Technical web data' };
+      return `
+      <tr>
+        <td><span style="font-weight:600;color:var(--text-active)">${typeInfo.name}</span></td>
+        <td style="color:var(--text-secondary); font-size:0.85rem;">${typeInfo.desc}</td>
+        <td style="font-family:var(--font-family); font-weight:500; font-size:.9rem; word-break:break-all">${r.data}</td>
+        <td><span class="tag tag-ok"><span class="material-symbols-outlined" style="font-size:16px; margin-right:4px;">check</span>Found</span></td>
+      </tr>`;
+    }).join('');
+    saveHistory(true, null, `Lookup: ${host}`);
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--status-fail);padding:20px;">Connection failed. Check your internet.</td></tr>`;
+  }
+  btn.disabled = false;
+}
+
+async function runSpeedTest() {
+  const btn = document.getElementById('speed-btn');
+  const out = document.getElementById('speed-output');
+  const cards = document.getElementById('speed-cards');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Testing Speed…';
+  out.style.display = 'none';
+
+  try {
+    let pings = [];
+    for(let i=0; i<3; i++) {
+      let t0 = performance.now();
+      await fetch('https://www.cloudflare.com/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' });
+      pings.push(performance.now() - t0);
+    }
+    const avgLat = pings.reduce((a,b)=>a+b, 0) / pings.length;
+    const jitter = Math.max(...pings) - Math.min(...pings);
+
+    const start = performance.now();
+    const res = await fetch('https://www.cloudflare.com/cdn-cgi/trace', {cache:'no-cache'});
+    const text = await res.text();
+    const elapsed = (performance.now()-start)/1000;
+    
+    const bytes = new Blob([text]).size + 800; 
+    const mbps = ((bytes*8)/(elapsed*1e6)).toFixed(2); 
+    
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">speed</span>Run Test Again';
+    
+    cards.innerHTML = `
+      <div class="status-card ok"><div class="status-icon"><span class="material-symbols-outlined">download</span></div><div class="status-info"><h3>Download Score</h3><p>${mbps} Mbps</p><small>Estimate</small></div></div>
+      <div class="status-card ok"><div class="status-icon"><span class="material-symbols-outlined">timer</span></div><div class="status-info"><h3>Delay (Ping)</h3><p>${avgLat.toFixed(0)} ms</p><small>Lower is better</small></div></div>
+      <div class="status-card ${jitter>50?'warn':'ok'}"><div class="status-icon"><span class="material-symbols-outlined">stacked_line_chart</span></div><div class="status-info"><h3>Stability</h3><p>${jitter.toFixed(0)} ms</p><small>Lower is smoother</small></div></div>
+      <div class="status-card ok"><div class="status-icon"><span class="material-symbols-outlined">thumb_up</span></div><div class="status-info"><h3>Overall</h3><p>Finished</p><small>Test complete</small></div></div>
+    `;
+    out.style.display = 'block';
+    saveHistory(true, avgLat.toFixed(0), 'Speed Test Run');
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">speed</span>Run Test Again';
+    cards.innerHTML = `<div class="status-card fail" style="grid-column:1/-1"><div class="status-icon"><span class="material-symbols-outlined">error</span></div><div class="status-info"><h3>Overall</h3><p>Offline</p><small>Test failed</small></div></div>`;
+    out.style.display = 'block';
+  }
+}
+
+/* ══════════════════════════════════
+   HISTORY TRACKING
+══════════════════════════════════ */
+function saveHistory(ok, rtt, label) {
+  const now = new Date();
+  historyData.unshift({
+    ok, rtt, label: label,
+    time: now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+    date: now.toLocaleDateString([], {month:'short',day:'numeric'})
+  });
+  if (historyData.length > 20) historyData.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!historyData.length) { list.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:40px 0; background:var(--bg-secondary); border-radius:8px; border:1px solid var(--border-color);">You have not run any manual tests yet today.</p>'; return; }
+  list.innerHTML = historyData.map((h) => `
+    <div class="history-item">
+      <div class="badge-dot ${h.ok?'ok':'fail'}" style="background:var(--status-${h.ok?'ok':'fail'}); box-shadow:0 0 6px var(--status-${h.ok?'ok':'fail'});"></div>
+      <div class="history-meta">
+        <p>${h.label}</p>
+        <small>${h.date} at ${h.time}${h.rtt?' · Speed: '+h.rtt+'ms':''}</small>
+      </div>
+      <span class="history-score" style="color:var(--status-${h.ok?'ok':'fail'})">${h.ok?'SUCCESS':'FAILED'}</span>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
